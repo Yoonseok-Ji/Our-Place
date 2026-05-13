@@ -1,5 +1,33 @@
 import { useState, useRef } from 'react';
-import { Camera, Star, CalendarDays, MapPin } from 'lucide-react';
+import { Camera, Star, CalendarDays, MapPin, X } from 'lucide-react';
+
+async function resizeImage(file: File, maxPx = 1200, quality = 0.82): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const scale = Math.min(maxPx / w, maxPx / h, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('canvas context unavailable'));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error('toBlob failed'));
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 import toast from 'react-hot-toast';
 import { visitsApi, type VisitCreate } from '../../api/visits';
 import { placesApi, type PlaceSaveRequest } from '../../api/places';
@@ -52,23 +80,35 @@ export default function VisitForm({ place, searchResult, onDone, onCancel }: Vis
         mood_tags: moodTags.length > 0 ? moodTags : undefined,
       };
       const visit = await visitsApi.logVisit(targetPlace.id, visitData);
+      let photoErrors = 0;
       for (const file of photos) {
-        await visitsApi.uploadPhoto(targetPlace.id, visit.id, file);
+        try {
+          const resized = await resizeImage(file).catch(() => file);
+          await visitsApi.uploadPhoto(targetPlace.id, visit.id, resized);
+        } catch {
+          photoErrors++;
+        }
       }
       const updatedPlace = await placesApi.get(targetPlace.id);
+      if (photoErrors > 0) {
+        toast.error(`사진 ${photoErrors}장 업로드에 실패했어요. 형식(JPG/PNG)을 확인해주세요.`);
+      }
       toast.success('방문이 기록됐어요');
       onDone(updatedPlace);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || '오류가 발생했어요');
+      toast.error(err.response?.data?.detail || '오류가 발생했어요. 네트워크 연결을 확인해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setPhotos(Array.from(e.target.files));
+    if (e.target.files) setPhotos((prev) => [...prev, ...Array.from(e.target.files!)]);
+    e.target.value = '';
   };
+
+  const removePhoto = (i: number) => setPhotos((prev) => prev.filter((_, idx) => idx !== i));
 
   const placeName = place?.name || searchResult?.place_name || '';
 
@@ -159,12 +199,22 @@ export default function VisitForm({ place, searchResult, onDone, onCancel }: Vis
           onClick={() => fileRef.current?.click()}
           className="w-full py-3 border-2 border-dashed border-border rounded-xl text-muted text-sm hover:border-brand/40 hover:text-brand transition-colors"
         >
-          {photos.length > 0 ? `${photos.length}장 선택됨` : '사진 추가'}
+          <Camera size={14} className="inline mr-1.5" />
+          사진 추가 (자동 리사이즈)
         </button>
         {photos.length > 0 && (
           <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
             {photos.map((f, i) => (
-              <img key={i} src={URL.createObjectURL(f)} className="w-16 h-16 object-cover rounded-xl flex-shrink-0 border border-border" alt="" />
+              <div key={i} className="relative flex-shrink-0">
+                <img src={URL.createObjectURL(f)} className="w-20 h-20 object-cover rounded-xl border border-border" alt="" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-700 text-white rounded-full flex items-center justify-center"
+                >
+                  <X size={10} />
+                </button>
+              </div>
             ))}
           </div>
         )}

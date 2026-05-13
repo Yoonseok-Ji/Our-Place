@@ -16,48 +16,39 @@ function PhotoGrid({ photos, onView }: { photos: Photo[]; onView: (i: number) =>
   if (photos.length === 1) {
     return (
       <div
-        className="aspect-[4/3] overflow-hidden cursor-pointer"
+        className="bg-black/5 cursor-pointer flex items-center justify-center max-h-52 overflow-hidden"
         onClick={() => onView(0)}
       >
-        <img src={photos[0].image_url} className="w-full h-full object-cover" alt="" />
+        <img
+          src={photos[0].image_url}
+          className="w-full max-h-52 object-contain"
+          alt=""
+        />
       </div>
     );
   }
 
-  if (photos.length === 2) {
-    return (
-      <div className="flex gap-0.5 h-52">
-        {photos.map((p, i) => (
-          <div key={p.id} className="flex-1 overflow-hidden cursor-pointer" onClick={() => onView(i)}>
-            <img src={p.image_url} className="w-full h-full object-cover" alt="" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  /* 3장 이상: 왼쪽 큰 사진 + 오른쪽 2장 세로 */
+  /* 2장 이상: 가로 스크롤 스트립 */
   return (
-    <div className="flex gap-0.5 h-56">
-      <div className="flex-[2] overflow-hidden cursor-pointer" onClick={() => onView(0)}>
-        <img src={photos[0].image_url} className="w-full h-full object-cover" alt="" />
-      </div>
-      <div className="flex-1 flex flex-col gap-0.5">
-        {photos.slice(1, 3).map((p, i) => (
-          <div
-            key={p.id}
-            className="flex-1 overflow-hidden cursor-pointer relative"
-            onClick={() => onView(i + 1)}
-          >
-            <img src={p.image_url} className="w-full h-full object-cover" alt="" />
-            {i === 1 && photos.length > 3 && (
-              <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
-                <span className="text-white font-bold text-2xl">+{photos.length - 3}</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="flex gap-1.5 overflow-x-auto px-2.5 py-2.5 bg-black/5 no-scrollbar">
+      {photos.map((p, i) => (
+        <div
+          key={p.id}
+          className="relative flex-shrink-0 cursor-pointer"
+          onClick={() => onView(i)}
+        >
+          <img
+            src={p.image_url}
+            className="h-36 w-auto max-w-[70vw] object-contain rounded-xl bg-black/5"
+            alt=""
+          />
+          {i === photos.length - 1 && photos.length > 5 && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl">
+              <span className="text-white font-bold text-base">+{photos.length - 5}</span>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -158,63 +149,63 @@ function VisitCard({ place, visit, onEdit, onDelete }: VisitCardProps) {
 
   return (
     <>
-      <article className="bg-surface rounded-3xl border border-border shadow-xs overflow-hidden">
+      <article className="bg-surface rounded-2xl border border-border shadow-xs overflow-hidden flex flex-col">
 
-        {/* 사진 그리드 */}
+        {/* 사진 */}
         {visit.photos.length > 0 ? (
           <PhotoGrid photos={visit.photos} onView={setLightboxIndex} />
         ) : (
-          <div className="h-12 bg-gradient-to-r from-brand-50 to-blue-50 flex items-center px-4 gap-2">
-            <Image size={14} className="text-brand/20" />
-            <span className="text-[11px] text-brand/30 font-medium">사진 없음</span>
+          <div className="h-9 bg-gradient-to-r from-brand-50 to-blue-50 flex items-center px-3.5 gap-1.5">
+            <Image size={12} className="text-brand/20" />
+            <span className="text-[10px] text-brand/30 font-medium">사진 없음</span>
           </div>
         )}
 
-        <div className="px-4 pt-3.5 pb-4">
-          {/* 헤더: 날짜 + 장소명 + 수정·삭제 */}
-          <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="px-3.5 pt-3 pb-3.5 flex flex-col flex-1">
+          {/* 헤더 */}
+          <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs text-muted">
-                  {format(new Date(visit.visited_date), 'yyyy. M. d (eee)', { locale: ko })}
+              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                <span className="text-[10px] text-muted">
+                  {format(new Date(visit.visited_date), 'yy. M. d (eee)', { locale: ko })}
                 </span>
-                <span className="text-[10px] font-semibold text-brand bg-brand-50 px-2 py-0.5 rounded-full border border-brand/15">
+                <span className="text-[9px] font-semibold text-brand bg-brand-50 px-1.5 py-0.5 rounded-full border border-brand/15">
                   {visit.visit_number}번째
                 </span>
               </div>
-              <h3 className="font-bold text-ink text-[15px] leading-snug truncate">{place.name}</h3>
+              <h3 className="font-bold text-ink text-sm leading-snug truncate">{place.name}</h3>
               {place.category && (
-                <p className="text-xs text-muted mt-0.5 flex items-center gap-1">
-                  <MapPin size={10} className="shrink-0" />
+                <p className="text-[11px] text-muted mt-0.5 flex items-center gap-1 truncate">
+                  <MapPin size={9} className="shrink-0" />
                   <span className="truncate">{place.category}</span>
                 </p>
               )}
             </div>
-            <div className="flex gap-1 shrink-0 mt-0.5">
+            <div className="flex gap-0.5 shrink-0">
               <button
                 onClick={onEdit}
-                className="w-7 h-7 flex items-center justify-center rounded-xl text-muted hover:bg-brand-50 hover:text-brand transition-colors"
+                className="w-6 h-6 flex items-center justify-center rounded-lg text-muted hover:bg-brand-50 hover:text-brand transition-colors"
                 title="수정"
               >
-                <Pencil size={13} />
+                <Pencil size={11} />
               </button>
               <button
                 onClick={onDelete}
-                className="w-7 h-7 flex items-center justify-center rounded-xl text-muted hover:bg-red-50 hover:text-red-400 transition-colors"
+                className="w-6 h-6 flex items-center justify-center rounded-lg text-muted hover:bg-red-50 hover:text-red-400 transition-colors"
                 title="삭제"
               >
-                <Trash2 size={13} />
+                <Trash2 size={11} />
               </button>
             </div>
           </div>
 
           {/* 별점 */}
           {visit.rating != null && visit.rating > 0 && (
-            <div className="flex items-center gap-0.5 mb-2.5">
+            <div className="flex items-center gap-0.5 mb-2">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
                   key={s}
-                  size={14}
+                  size={11}
                   className={s <= visit.rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
                 />
               ))}
@@ -223,22 +214,27 @@ function VisitCard({ place, visit, onEdit, onDelete }: VisitCardProps) {
 
           {/* 메모 */}
           {visit.memo && (
-            <div className="bg-bg rounded-2xl px-3.5 py-2.5 mb-2.5 border-l-[3px] border-brand/20">
-              <p className="text-sm text-ink/80 leading-relaxed">{visit.memo}</p>
+            <div className="bg-bg rounded-xl px-3 py-2 mb-2 border-l-2 border-brand/20">
+              <p className="text-xs text-ink/80 leading-relaxed line-clamp-3">{visit.memo}</p>
             </div>
           )}
 
           {/* 분위기 태그 */}
           {visit.mood_tags && visit.mood_tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {visit.mood_tags.map((tag) => (
+            <div className="flex flex-wrap gap-1 mt-auto">
+              {visit.mood_tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="px-2.5 py-1 bg-bg text-muted text-xs rounded-full border border-border"
+                  className="px-2 py-0.5 bg-bg text-muted text-[10px] rounded-full border border-border"
                 >
                   {tag}
                 </span>
               ))}
+              {visit.mood_tags.length > 3 && (
+                <span className="px-2 py-0.5 bg-bg text-muted text-[10px] rounded-full border border-border">
+                  +{visit.mood_tags.length - 3}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -361,7 +357,7 @@ export default function TimelinePage() {
                   <span className="text-xs text-muted whitespace-nowrap">{items.length}번</span>
                 </div>
 
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {items.map(({ place, visit }) => (
                     <VisitCard
                       key={visit.id}

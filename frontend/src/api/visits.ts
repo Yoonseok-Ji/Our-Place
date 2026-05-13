@@ -37,4 +37,7 @@ export const visitsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data);
   },
+
+  deletePhoto: (placeId: string, visitId: string, photoId: string) =>
+    client.delete(`/visits/${placeId}/${visitId}/photos/${photoId}`),
 };

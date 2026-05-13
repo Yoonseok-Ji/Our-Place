@@ -114,6 +114,27 @@ async def upload_photo(
     return {"id": photo.id, "image_url": photo.image_url}
 
 
+@router.delete("/{place_id}/{visit_id}/photos/{photo_id}", status_code=204)
+def delete_photo(
+    place_id: str,
+    visit_id: str,
+    photo_id: str,
+    couple: Couple = Depends(get_active_couple),
+    db: Session = Depends(get_db),
+):
+    photo = db.query(VisitPhoto).filter(
+        VisitPhoto.id == photo_id,
+        VisitPhoto.visit_id == visit_id,
+    ).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
+    filepath = os.path.join(UPLOAD_DIR, os.path.basename(photo.image_url))
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    db.delete(photo)
+    db.commit()
+
+
 @router.patch("/{place_id}/{visit_id}", response_model=VisitOut)
 def update_visit(
     place_id: str,

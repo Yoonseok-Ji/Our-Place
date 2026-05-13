@@ -77,6 +77,59 @@ def save_place(
     return place
 
 
+@router.post("/{place_id}/wishlist", response_model=PlaceOut)
+def add_to_wishlist(
+    place_id: str,
+    current_user: User = Depends(get_current_user),
+    couple: Couple = Depends(get_active_couple),
+    db: Session = Depends(get_db),
+):
+    place = db.query(CouplePlace).filter(
+        CouplePlace.id == place_id,
+        CouplePlace.couple_id == couple.id,
+    ).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다.")
+    is_male = current_user.gender == "male"
+    if is_male:
+        place.saved_by_male = True
+    else:
+        place.saved_by_female = True
+    place.status = _compute_status(place.saved_by_male, place.saved_by_female, place.visit_count)
+    db.commit()
+    db.refresh(place)
+    return place
+
+
+@router.delete("/{place_id}/wishlist", status_code=204)
+def unsave_wishlist(
+    place_id: str,
+    current_user: User = Depends(get_current_user),
+    couple: Couple = Depends(get_active_couple),
+    db: Session = Depends(get_db),
+):
+    place = db.query(CouplePlace).filter(
+        CouplePlace.id == place_id,
+        CouplePlace.couple_id == couple.id,
+    ).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다.")
+    is_male = current_user.gender == "male"
+    if is_male:
+        if not place.saved_by_male:
+            raise HTTPException(status_code=400, detail="저장하지 않은 장소입니다.")
+        place.saved_by_male = False
+    else:
+        if not place.saved_by_female:
+            raise HTTPException(status_code=400, detail="저장하지 않은 장소입니다.")
+        place.saved_by_female = False
+    if not place.saved_by_male and not place.saved_by_female and place.visit_count == 0:
+        db.delete(place)
+    else:
+        place.status = _compute_status(place.saved_by_male, place.saved_by_female, place.visit_count)
+    db.commit()
+
+
 @router.get("/{place_id}", response_model=PlaceOut)
 def get_place(
     place_id: str,
