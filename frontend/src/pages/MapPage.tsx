@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Bookmark, MapPin, ExternalLink, Navigation, Search, ChevronLeft } from 'lucide-react';
+import { Bookmark, MapPin, ExternalLink, Navigation, Search, ChevronLeft, List, X } from 'lucide-react';
 import type { Place, KakaoSearchResult } from '../types';
 import { placesApi, kakaoResultToRequest } from '../api/places';
 import { useAuthStore } from '../store/authStore';
@@ -147,12 +147,15 @@ function DiscoveryCard({
 
 /* ── 메인 컴포넌트 ─────────────────────────────────────── */
 export default function MapPage() {
-  const { user } = useAuthStore();
+  const { user, couple } = useAuthStore();
   const { searchNearby } = useKakaoSearch();
 
   const isMale = user?.gender === 'male';
-  const myStatus     = isMale ? 'MALE_ONLY'   : 'FEMALE_ONLY';
+  const myStatus      = isMale ? 'MALE_ONLY'   : 'FEMALE_ONLY';
   const partnerStatus = isMale ? 'FEMALE_ONLY' : 'MALE_ONLY';
+  const partnerName   = couple
+    ? (couple.user1?.id === user?.id ? couple.user2?.name : couple.user1?.name) ?? '파트너'
+    : '파트너';
 
   const [places, setPlaces]                 = useState<Place[]>([]);
   const [discovery, setDiscovery]           = useState<KakaoSearchResult[]>([]);
@@ -163,11 +166,15 @@ export default function MapPage() {
 
   const [selectedPlace, setSelectedPlace]         = useState<Place | null>(null);
   const [selectedDiscovery, setSelectedDiscovery] = useState<KakaoSearchResult | null>(null);
-  const [showRightPanel, setShowRightPanel]       = useState(true);
+  const [showRightPanel, setShowRightPanel]       = useState(() => window.innerWidth >= 768);
 
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [visitTarget, setVisitTarget]       = useState<KakaoSearchResult | null>(null);
   const [savingId, setSavingId]             = useState<string | null>(null);
+  const [sectionFilter, setSectionFilter]   = useState<'VISITED' | 'BOTH' | 'my' | 'partner' | null>(null);
+
+  const toggleSection = (s: 'VISITED' | 'BOTH' | 'my' | 'partner') =>
+    setSectionFilter((prev) => (prev === s ? null : s));
 
   const searchDebounce = useRef<ReturnType<typeof setTimeout>>();
 
@@ -355,51 +362,79 @@ export default function MapPage() {
             />
           )}
 
-          {/* 오른쪽 패널 토글 버튼 */}
+          {/* 오른쪽 패널 토글 버튼 (데스크톱만) */}
           <button
             onClick={() => setShowRightPanel((p) => !p)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-surface border border-r-0 border-border rounded-l-2xl shadow-md w-5 h-14 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-surface border border-r-0 border-border rounded-l-2xl shadow-md w-5 h-14 items-center justify-center hover:bg-gray-50 transition-colors"
           >
             <ChevronLeft
               size={13}
               className={`text-muted transition-transform duration-300 ${!showRightPanel ? 'rotate-180' : ''}`}
             />
           </button>
+
+          {/* 모바일 목록 버튼: 패널이 없고 상세가 열리지 않았을 때만 표시 */}
+          {!showRightPanel && !selectedPlace && !selectedDiscovery && (
+            <button
+              onClick={() => setShowRightPanel(true)}
+              className="md:hidden absolute bottom-[84px] left-1/2 -translate-x-1/2 z-50 bg-surface border border-border rounded-2xl shadow-lg px-5 py-2.5 flex items-center gap-2 text-sm font-semibold text-ink"
+            >
+              <List size={16} className="text-brand" />
+              목록 보기
+            </button>
+          )}
         </div>
 
         {/* ── 오른쪽: 장소 패널 ───────────────────────── */}
         <div
-          className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden bg-surface ${
-            showRightPanel ? 'w-72 border-l border-border' : 'w-0'
-          }`}
+          className={[
+            'bg-surface overflow-hidden flex flex-col',
+            'md:flex-shrink-0 md:transition-all md:duration-300 md:ease-in-out',
+            showRightPanel
+              ? [
+                  'fixed inset-x-0 top-0 bottom-[72px] z-50',
+                  'md:relative md:inset-auto md:bottom-auto md:z-auto',
+                  'md:w-72 md:border-l md:border-border',
+                ].join(' ')
+              : 'hidden md:flex md:w-0',
+          ].join(' ')}
         >
-          <div className="w-72 h-full flex flex-col overflow-hidden">
+          <div className="w-full md:w-72 h-full flex flex-col overflow-hidden">
 
             {/* 헤더 통계 */}
             <div className="px-4 pt-4 pb-3 border-b border-border shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="font-bold text-ink text-sm">우리들의 장소</h2>
-                <span className="text-xs font-semibold text-brand bg-brand-50 px-2.5 py-1 rounded-full">
-                  총 {places.length}곳
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-brand bg-brand-50 px-2.5 py-1 rounded-full">
+                    총 {places.length}곳
+                  </span>
+                  <button
+                    onClick={() => setShowRightPanel(false)}
+                    className="md:hidden w-7 h-7 flex items-center justify-center rounded-xl text-muted hover:bg-gray-100 transition-colors"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-4 gap-1 text-center">
-                <div className="bg-heart-light rounded-xl py-1.5">
-                  <p className="text-sm font-bold text-heart">{stats.visited}</p>
-                  <p className="text-[9px] text-heart/70 font-medium mt-0.5">방문</p>
-                </div>
-                <div className="bg-violet-50 rounded-xl py-1.5">
-                  <p className="text-sm font-bold text-blue-both">{stats.both}</p>
-                  <p className="text-[9px] text-blue-both/70 font-medium mt-0.5">함께</p>
-                </div>
-                <div className="bg-blue-50 rounded-xl py-1.5">
-                  <p className="text-sm font-bold text-blue-male">{stats.mine}</p>
-                  <p className="text-[9px] text-blue-male/70 font-medium mt-0.5">내 위시</p>
-                </div>
-                <div className="bg-pink-50 rounded-xl py-1.5">
-                  <p className="text-sm font-bold text-rose-pin">{stats.partner}</p>
-                  <p className="text-[9px] text-rose-pin/70 font-medium mt-0.5">파트너</p>
-                </div>
+                {(
+                  [
+                    { key: 'VISITED', count: stats.visited, label: '방문',    bg: 'bg-heart-light',  bold: 'text-heart',     sub: 'text-heart/70'     },
+                    { key: 'BOTH',    count: stats.both,    label: '함께',    bg: 'bg-violet-50',    bold: 'text-blue-both', sub: 'text-blue-both/70' },
+                    { key: 'my',      count: stats.mine,    label: '내 위시', bg: 'bg-blue-50',      bold: 'text-blue-male', sub: 'text-blue-male/70' },
+                    { key: 'partner', count: stats.partner, label: partnerName, bg: 'bg-pink-50',    bold: 'text-rose-pin',  sub: 'text-rose-pin/70'  },
+                  ] as const
+                ).map(({ key, count, label, bg, bold, sub }) => (
+                  <button
+                    key={key}
+                    onClick={() => toggleSection(key)}
+                    className={`${bg} rounded-xl py-1.5 transition-all cursor-pointer ${sectionFilter === key ? 'ring-2 ring-offset-1 ring-brand/50 scale-105' : 'hover:scale-105'}`}
+                  >
+                    <p className={`text-sm font-bold ${bold}`}>{count}</p>
+                    <p className={`text-[9px] font-medium mt-0.5 truncate px-1 ${sub}`}>{label}</p>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -445,8 +480,16 @@ export default function MapPage() {
             {/* 장소 목록 (섹션별) */}
             <div className="flex-1 overflow-y-auto pb-[72px]">
 
+              {/* 필터 안내 */}
+              {sectionFilter && (
+                <div className="px-4 py-2 flex items-center justify-between bg-brand-50 border-b border-brand/10">
+                  <p className="text-xs text-brand font-semibold">필터 적용됨</p>
+                  <button onClick={() => setSectionFilter(null)} className="text-xs text-brand/70 hover:text-brand underline">전체 보기</button>
+                </div>
+              )}
+
               {/* ① 방문한 곳 */}
-              {visitedSaved.length > 0 && (
+              {(!sectionFilter || sectionFilter === 'VISITED') && visitedSaved.length > 0 && (
                 <>
                   <SectionHeader dot="bg-heart" title="방문한 곳" count={visitedSaved.length} />
                   <div className="divide-y divide-border/30">
@@ -457,8 +500,8 @@ export default function MapPage() {
                 </>
               )}
 
-              {/* ② 함께 가고 싶어요 */}
-              {bothSaved.length > 0 && (
+              {/* ② 함께 가고 싶어요 (둘 다 위시) */}
+              {(!sectionFilter || sectionFilter === 'BOTH') && bothSaved.length > 0 && (
                 <>
                   <SectionHeader dot="bg-blue-both" title="함께 가고 싶어요" count={bothSaved.length} />
                   <div className="divide-y divide-border/30">
@@ -470,7 +513,7 @@ export default function MapPage() {
               )}
 
               {/* ③ 내 위시리스트 */}
-              {mySaved.length > 0 && (
+              {(!sectionFilter || sectionFilter === 'my') && mySaved.length > 0 && (
                 <>
                   <SectionHeader
                     dot={isMale ? 'bg-blue-male' : 'bg-rose-pin'}
@@ -486,11 +529,11 @@ export default function MapPage() {
               )}
 
               {/* ④ 파트너 위시리스트 */}
-              {partnerSaved.length > 0 && (
+              {(!sectionFilter || sectionFilter === 'partner') && partnerSaved.length > 0 && (
                 <>
                   <SectionHeader
                     dot={isMale ? 'bg-rose-pin' : 'bg-blue-male'}
-                    title="파트너 위시리스트"
+                    title={`${partnerName} 위시리스트`}
                     count={partnerSaved.length}
                   />
                   <div className="divide-y divide-border/30">

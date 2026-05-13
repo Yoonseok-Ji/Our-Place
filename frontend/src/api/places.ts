@@ -21,6 +21,10 @@ export const placesApi = {
   get: (id: string) => client.get<Place>(`/places/${id}`).then((r) => r.data),
 
   delete: (id: string) => client.delete(`/places/${id}`),
+
+  addToWishlist: (id: string) => client.post<Place>(`/places/${id}/wishlist`).then((r) => r.data),
+
+  unsaveWishlist: (id: string) => client.delete(`/places/${id}/wishlist`),
 };
 
 export function kakaoResultToRequest(result: KakaoSearchResult): PlaceSaveRequest {

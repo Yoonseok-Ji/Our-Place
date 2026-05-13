@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, MapPin, Star, Plus } from 'lucide-react';
+import { X, MapPin, Star, Plus, Bookmark, BookmarkX, ExternalLink } from 'lucide-react';
 import type { Place, PlaceWithVisits } from '../../types';
 import { visitsApi } from '../../api/visits';
 import { placesApi } from '../../api/places';
@@ -19,23 +19,33 @@ interface PlaceDetailPanelProps {
 }
 
 export default function PlaceDetailPanel({ place, onClose, onPlaceUpdated, onPlaceDeleted }: PlaceDetailPanelProps) {
-  const { user } = useAuthStore();
+  const { user, couple } = useAuthStore();
   const isMale = user?.gender === 'male';
 
+  const partnerName = couple
+    ? (couple.user1?.id === user?.id ? couple.user2?.name : couple.user1?.name) ?? '파트너'
+    : '파트너';
+
+  const iMySaved     = isMale ? place.saved_by_male : place.saved_by_female;
+  const isPartnerSaved = isMale ? place.saved_by_female : place.saved_by_male;
+
   const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-    MALE_ONLY:   isMale
-      ? { label: '내 위시리스트',    cls: 'bg-blue-50 text-blue-male border-blue-male/20' }
-      : { label: '파트너 위시리스트', cls: 'bg-blue-50 text-blue-male border-blue-male/20' },
+    MALE_ONLY: isMale
+      ? { label: '내 위시리스트',           cls: 'bg-blue-50 text-blue-male border-blue-male/20' }
+      : { label: `${partnerName} 위시리스트`, cls: 'bg-blue-50 text-blue-male border-blue-male/20' },
     FEMALE_ONLY: !isMale
-      ? { label: '내 위시리스트',    cls: 'bg-pink-50 text-rose-pin border-rose-pin/20' }
-      : { label: '파트너 위시리스트', cls: 'bg-pink-50 text-rose-pin border-rose-pin/20' },
+      ? { label: '내 위시리스트',           cls: 'bg-pink-50 text-rose-pin border-rose-pin/20' }
+      : { label: `${partnerName} 위시리스트`, cls: 'bg-pink-50 text-rose-pin border-rose-pin/20' },
     BOTH:    { label: '함께 가고 싶어요', cls: 'bg-brand-50 text-brand border-brand/20'  },
     VISITED: { label: '방문 완료',        cls: 'bg-heart-light text-heart border-heart/20' },
   };
 
+  const kakaoUrl = place.place_url || (place.kakao_place_id ? `https://place.map.kakao.com/${place.kakao_place_id}` : null);
+
   const [detail, setDetail]               = useState<PlaceWithVisits | null>(null);
   const [showVisitForm, setShowVisitForm] = useState(false);
-  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingUnsave, setLoadingUnsave] = useState(false);
+  const [loadingAdd, setLoadingAdd]       = useState(false);
   const badge = STATUS_BADGE[place.status];
 
   useEffect(() => {
@@ -46,27 +56,51 @@ export default function PlaceDetailPanel({ place, onClose, onPlaceUpdated, onPla
     }
   }, [place.id, place.visit_count]);
 
-  const handleDelete = async () => {
-    if (!confirm(`"${place.name}"을 삭제할까요?`)) return;
-    setLoadingDelete(true);
+  const handleUnsaveWishlist = async () => {
+    if (!confirm(`내 위시리스트에서 "${place.name}"을 제거할까요?`)) return;
+    setLoadingUnsave(true);
     try {
-      await placesApi.delete(place.id);
-      toast.success('삭제됐어요');
-      onPlaceDeleted(place.id);
+      await placesApi.unsaveWishlist(place.id);
+      const newMale   = isMale ? false : place.saved_by_male;
+      const newFemale = !isMale ? false : place.saved_by_female;
+      if (!newMale && !newFemale && place.visit_count === 0) {
+        toast.success('위시리스트에서 제거됐어요');
+        onPlaceDeleted(place.id);
+      } else {
+        const newStatus = newMale && newFemale ? 'BOTH'
+          : newMale ? 'MALE_ONLY'
+          : newFemale ? 'FEMALE_ONLY'
+          : 'VISITED';
+        onPlaceUpdated({ ...place, saved_by_male: newMale, saved_by_female: newFemale, status: newStatus });
+        toast.success('내 위시리스트에서 제거됐어요');
+      }
     } catch {
-      toast.error('삭제에 실패했어요');
+      toast.error('제거에 실패했어요');
     } finally {
-      setLoadingDelete(false);
+      setLoadingUnsave(false);
+    }
+  };
+
+  const handleAddMyWishlist = async () => {
+    setLoadingAdd(true);
+    try {
+      const updated = await placesApi.addToWishlist(place.id);
+      onPlaceUpdated(updated);
+      toast.success('내 위시리스트에 추가됐어요');
+    } catch {
+      toast.error('추가에 실패했어요');
+    } finally {
+      setLoadingAdd(false);
     }
   };
 
   return (
     <>
       <div className="absolute bottom-[72px] left-2 right-2 z-40 animate-slide-up">
-        <div className="bg-surface rounded-3xl shadow-xl border border-border overflow-hidden max-h-[60vh] flex flex-col">
+        <div className="bg-surface rounded-3xl shadow-xl border border-border overflow-hidden max-h-[65vh] flex flex-col">
 
           {/* 헤더 */}
-          <div className="p-5 pb-4 border-b border-border/50">
+          <div className="p-5 pb-4 border-b border-border/50 shrink-0">
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5">
@@ -99,6 +133,21 @@ export default function PlaceDetailPanel({ place, onClose, onPlaceUpdated, onPla
               </div>
             )}
           </div>
+
+          {/* 카카오맵 링크 */}
+          {kakaoUrl && (
+            <div className="px-5 py-3 border-b border-border/50 shrink-0">
+              <a
+                href={kakaoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#FEE500] rounded-2xl text-[#191919] text-xs font-bold hover:bg-yellow-300 transition-colors"
+              >
+                <ExternalLink size={13} />
+                카카오맵에서 사진·메뉴 보기
+              </a>
+            </div>
+          )}
 
           {/* 방문 기록 목록 */}
           {detail && detail.visits.length > 0 && (
@@ -147,22 +196,44 @@ export default function PlaceDetailPanel({ place, onClose, onPlaceUpdated, onPla
             </div>
           )}
 
-          {/* 액션 */}
-          <div className="p-4 pt-3 flex gap-2.5 border-t border-border/50">
-            <Button
-              onClick={() => setShowVisitForm(true)}
-              className="flex-1"
-              icon={<Plus size={15} />}
-            >
-              {place.visit_count > 0 ? '또 방문했어요' : '방문 기록'}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleDelete}
-              loading={loadingDelete}
-              className="px-3 !text-red-400 hover:!text-red-600 hover:!bg-red-50"
-              icon={<Trash2 size={15} />}
-            />
+          {/* 액션 버튼 영역 */}
+          <div className="p-4 pt-3 border-t border-border/50 shrink-0">
+            <div className="flex gap-2.5">
+              {/* 방문 기록 버튼 (항상 표시) */}
+              <Button
+                onClick={() => setShowVisitForm(true)}
+                className="flex-1"
+                icon={<Plus size={15} />}
+              >
+                {place.visit_count > 0 ? '또 방문했어요' : '방문 기록'}
+              </Button>
+
+              {/* 내 위시 취소 (내가 저장한 경우만) */}
+              {iMySaved && place.status !== 'VISITED' && (
+                <Button
+                  variant="ghost"
+                  onClick={handleUnsaveWishlist}
+                  loading={loadingUnsave}
+                  className="px-3 !text-muted hover:!text-red-400 hover:!bg-red-50"
+                  icon={<BookmarkX size={15} />}
+                  title="내 위시 취소"
+                />
+              )}
+            </div>
+
+            {/* 나도 위시에 추가 (파트너가 저장, 나는 미저장인 경우) */}
+            {!iMySaved && isPartnerSaved && place.status !== 'VISITED' && (
+              <Button
+                variant="secondary"
+                onClick={handleAddMyWishlist}
+                loading={loadingAdd}
+                fullWidth
+                className="mt-2"
+                icon={<Bookmark size={15} />}
+              >
+                나도 위시에 추가
+              </Button>
+            )}
           </div>
         </div>
       </div>

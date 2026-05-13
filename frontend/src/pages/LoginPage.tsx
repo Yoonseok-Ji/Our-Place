@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { authApi } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
-import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const [form, setForm]     = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
       const data = await authApi.login(form);
@@ -22,7 +23,7 @@ export default function LoginPage() {
       navigate('/connect', { replace: true });
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || '이메일 또는 비밀번호를 확인해주세요');
+      setError(err.response?.data?.detail || '이메일 또는 비밀번호가 올바르지 않습니다.');
     } finally {
       setLoading(false);
     }
@@ -51,7 +52,7 @@ export default function LoginPage() {
               placeholder="hello@example.com"
               icon={<Mail size={15} />}
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => { setForm({ ...form, email: e.target.value }); setError(''); }}
               required
               autoComplete="email"
             />
@@ -61,10 +62,16 @@ export default function LoginPage() {
               placeholder="비밀번호 입력"
               icon={<Lock size={15} />}
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(''); }}
               required
               autoComplete="current-password"
             />
+            {error && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <Button
               type="submit"
               size="lg"
