@@ -10,6 +10,13 @@ class VisitCreate(BaseModel):
     mood_tags: Optional[list[str]] = None
 
 
+class VisitUpdate(BaseModel):
+    visited_date: Optional[date] = None
+    rating: Optional[int] = None
+    memo: Optional[str] = None
+    mood_tags: Optional[list[str]] = None
+
+
 class PhotoOut(BaseModel):
     id: str
     visit_id: str

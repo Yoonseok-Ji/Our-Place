@@ -9,7 +9,7 @@ from ..models.place import CouplePlace
 from ..models.visit import Visit, VisitPhoto
 from ..models.couple import Couple
 from ..models.user import User
-from ..schemas.visit import VisitCreate, VisitOut, PlaceWithVisits
+from ..schemas.visit import VisitCreate, VisitOut, PlaceWithVisits, VisitUpdate
 from ..deps import get_current_user, get_active_couple
 
 router = APIRouter(prefix="/visits", tags=["visits"])
@@ -112,6 +112,51 @@ async def upload_photo(
     db.commit()
     db.refresh(photo)
     return {"id": photo.id, "image_url": photo.image_url}
+
+
+@router.patch("/{place_id}/{visit_id}", response_model=VisitOut)
+def update_visit(
+    place_id: str,
+    visit_id: str,
+    body: VisitUpdate,
+    couple: Couple = Depends(get_active_couple),
+    db: Session = Depends(get_db),
+):
+    visit = db.query(Visit).filter(
+        Visit.id == visit_id,
+        Visit.couple_id == couple.id,
+    ).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="방문 기록을 찾을 수 없습니다.")
+
+    for field in body.model_fields_set:
+        setattr(visit, field, getattr(body, field))
+
+    db.commit()
+    db.refresh(visit)
+    return visit
+
+
+@router.delete("/{place_id}/{visit_id}", status_code=204)
+def delete_visit(
+    place_id: str,
+    visit_id: str,
+    couple: Couple = Depends(get_active_couple),
+    db: Session = Depends(get_db),
+):
+    visit = db.query(Visit).filter(
+        Visit.id == visit_id,
+        Visit.couple_id == couple.id,
+    ).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="방문 기록을 찾을 수 없습니다.")
+
+    place = db.query(CouplePlace).filter(CouplePlace.id == place_id).first()
+    db.delete(visit)
+    db.flush()
+    if place:
+        _update_place_status(place)
+    db.commit()
 
 
 @router.get("/{place_id}", response_model=PlaceWithVisits)
