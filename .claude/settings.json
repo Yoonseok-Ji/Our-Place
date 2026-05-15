@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(./node_modules/.bin/vite build *)",
+      "Bash(rm -rf node_modules package-lock.json && npm install 2>&1 | tail -20)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('backend/app/main.py'\\).read\\(\\)\\); print\\('main.py OK'\\)\")",
+      "Bash(python3 -c ' *)"
+    ],
+    "additionalDirectories": [
+      "/Users/jiyunseok/Desktop/Our-Place/frontend/node_modules"
+    ]
+  }
+}

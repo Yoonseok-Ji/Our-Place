@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days
 
+    AWS_REGION: str = "ap-northeast-2"
+    S3_BUCKET_NAME: str = "duo-log-imageserver-449902674087"
+
     class Config:
         env_file = ".env"
 

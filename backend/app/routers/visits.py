@@ -1,6 +1,4 @@
-import os
 import uuid
-import aiofiles
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import date
@@ -11,11 +9,9 @@ from ..models.couple import Couple
 from ..models.user import User
 from ..schemas.visit import VisitCreate, VisitOut, PlaceWithVisits, VisitUpdate
 from ..deps import get_current_user, get_active_couple
+from ..core.s3 import upload_to_s3, delete_from_s3
 
 router = APIRouter(prefix="/visits", tags=["visits"])
-
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 def _update_place_status(place: CouplePlace):
@@ -95,17 +91,15 @@ async def upload_photo(
     if not visit:
         raise HTTPException(status_code=404, detail="방문 기록을 찾을 수 없습니다.")
 
+    import os
     ext = os.path.splitext(file.filename or "photo.jpg")[1].lower()
-    filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-
-    async with aiofiles.open(filepath, "wb") as f:
-        content = await file.read()
-        await f.write(content)
+    key = f"uploads/{uuid.uuid4()}{ext}"
+    content = await file.read()
+    image_url = upload_to_s3(content, key, file.content_type or "image/jpeg")
 
     photo = VisitPhoto(
         visit_id=visit_id,
-        image_url=f"/uploads/{filename}",
+        image_url=image_url,
         uploaded_by_user_id=current_user.id,
     )
     db.add(photo)
@@ -128,9 +122,7 @@ def delete_photo(
     ).first()
     if not photo:
         raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
-    filepath = os.path.join(UPLOAD_DIR, os.path.basename(photo.image_url))
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    delete_from_s3(photo.image_url)
     db.delete(photo)
     db.commit()
 
