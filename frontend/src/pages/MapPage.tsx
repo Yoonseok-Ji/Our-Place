@@ -389,7 +389,7 @@ export default function MapPage() {
             {/* 헤더 통계 */}
             <div className="px-4 pt-4 pb-3 border-b border-border shrink-0">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="font-bold text-ink text-sm">우리들의 장소</h2>
+                <h2 className="font-bold text-ink text-sm">우리의 장소</h2>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-brand bg-brand-50 px-2.5 py-1 rounded-full">
                     총 {places.length}곳

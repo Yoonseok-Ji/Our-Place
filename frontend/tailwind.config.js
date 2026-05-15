@@ -5,8 +5,8 @@ export default {
     extend: {
       colors: {
         // Brand
-        primary: { DEFAULT: '#3182F6', hover: '#1B64DA', light: '#EBF2FF', dark: '#1250CF' },
-        brand:   { DEFAULT: '#3182F6', 50: '#EBF2FF', 100: '#D6E8FF', hover: '#1B64DA', dark: '#1250CF' },
+        primary: { DEFAULT: '#EC4899', hover: '#DB2777', light: '#FDF2F8', dark: '#BE185D' },
+        brand:   { DEFAULT: '#EC4899', 50: '#FDF2F8', 100: '#FCE7F3', hover: '#DB2777', dark: '#BE185D' },
 
         // Semantic text
         ink:   { DEFAULT: '#191F28', 2: '#4E5968' },

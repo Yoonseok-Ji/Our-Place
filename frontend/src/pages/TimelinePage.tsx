@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Star, Image, Pencil, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { mediaUrl } from '../utils/mediaUrl';
 import { visitsApi } from '../api/visits';
 import type { PlaceWithVisits, Visit, Photo } from '../types';
 import MainNav from '../components/layout/MainNav';
@@ -20,7 +21,7 @@ function PhotoGrid({ photos, onView }: { photos: Photo[]; onView: (i: number) =>
         onClick={() => onView(0)}
       >
         <img
-          src={photos[0].image_url}
+          src={mediaUrl(photos[0].image_url)}
           className="w-full max-h-52 object-contain"
           alt=""
         />
@@ -38,7 +39,7 @@ function PhotoGrid({ photos, onView }: { photos: Photo[]; onView: (i: number) =>
           onClick={() => onView(i)}
         >
           <img
-            src={p.image_url}
+            src={mediaUrl(p.image_url)}
             className="h-36 w-auto max-w-[70vw] object-contain rounded-xl bg-black/5"
             alt=""
           />
@@ -93,7 +94,7 @@ function PhotoLightbox({
         onClick={(e) => e.stopPropagation()}
       >
         <img
-          src={photos[current].image_url}
+          src={mediaUrl(photos[current].image_url)}
           className="max-w-full max-h-full object-contain rounded-2xl"
           alt=""
         />

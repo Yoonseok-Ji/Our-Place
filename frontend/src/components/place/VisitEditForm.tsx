@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { mediaUrl } from '../../utils/mediaUrl';
 import { Star, CalendarDays, MapPin, Camera, X, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { visitsApi } from '../../api/visits';
@@ -222,7 +223,7 @@ export default function VisitEditForm({ place, visit, onDone, onCancel }: VisitE
               {existingPhotos.map((p) => (
                 <div key={p.id} className="relative flex-shrink-0">
                   <img
-                    src={p.image_url}
+                    src={mediaUrl(p.image_url)}
                     className="w-20 h-20 object-cover rounded-xl border border-border"
                     alt=""
                   />

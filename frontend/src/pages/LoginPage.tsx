@@ -41,8 +41,8 @@ export default function LoginPage() {
                 <circle cx="12" cy="9" r="2.5" fill="white" stroke="none"/>
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-ink">우리들의 지도</h1>
-            <p className="text-muted text-sm mt-1.5">우리 둘만의 추억이 쌓이는 공간</p>
+            <h1 className="text-2xl font-bold text-ink">Duo-Log</h1>
+            <p className="text-muted text-sm mt-1.5">우리 둘만의 데이트 기록 공간</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">

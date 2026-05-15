@@ -164,7 +164,7 @@ export default function ProfilePage() {
 
       {/* 통계 */}
       <div className="px-4 pt-6 pb-4">
-        <p className="text-xs font-semibold text-muted uppercase tracking-wider px-1 mb-3">우리의 지도</p>
+        <p className="text-xs font-semibold text-muted uppercase tracking-wider px-1 mb-3">Duo-Log</p>
         <div className="grid grid-cols-2 gap-2.5">
           <StatCard icon={<MapPin size={16} className="text-brand" />}     value={stats.total}       label="저장한 장소" />
           <StatCard icon={<Navigation size={16} className="text-heart" />} value={stats.visited}     label="함께 방문한 곳" />
