@@ -13,9 +13,9 @@ import VisitForm from '../components/place/VisitForm';
 import MainNav from '../components/layout/MainNav';
 import toast from 'react-hot-toast';
 
-/* ── 카테고리 ─────────────────────────────────────────── */
+/* ── 카테고리 (주변 식당 검색용) ──────────────────────── */
 const CATEGORIES = [
-  { id: 'all',  label: '전체' },
+  { id: 'all',  label: '검색 안함' },
   { id: '한식', label: '한식' },
   { id: '일식', label: '일식' },
   { id: '양식', label: '양식' },
@@ -27,30 +27,17 @@ const CATEGORIES = [
 
 /* ── 지역 ──────────────────────────────────────────────── */
 const REGIONS = [
-  { id: 'hongdae', label: '홍대/합정', lat: 37.5563, lng: 126.9245 },
-  { id: 'gangnam', label: '강남',      lat: 37.4979, lng: 127.0276 },
-  { id: 'itaewon', label: '이태원',    lat: 37.5345, lng: 126.9942 },
-  { id: 'jongno',  label: '종로',      lat: 37.5704, lng: 126.9780 },
-  { id: 'sungsu',  label: '성수',      lat: 37.5445, lng: 127.0557 },
-  { id: 'sinchon', label: '신촌',      lat: 37.5556, lng: 126.9369 },
-  { id: 'yeouido', label: '여의도',    lat: 37.5217, lng: 126.9244 },
-  { id: 'jamsil',  label: '잠실',      lat: 37.5148, lng: 127.1060 },
-  { id: 'mapo',    label: '마포',      lat: 37.5638, lng: 126.9084 },
+  { id: 'seoul',     label: '서울 전체', lat: 37.5665, lng: 126.9780 },
+  { id: 'gangnam',   label: '강남/서초', lat: 37.4979, lng: 127.0276 },
+  { id: 'hongdae',   label: '홍대/마포', lat: 37.5563, lng: 126.9245 },
+  { id: 'jongno',    label: '종로/중구', lat: 37.5704, lng: 126.9780 },
+  { id: 'sungsu',    label: '성수/건대', lat: 37.5445, lng: 127.0557 },
+  { id: 'yeouido',   label: '여의도',    lat: 37.5217, lng: 126.9244 },
+  { id: 'gyeonggi',  label: '경기',      lat: 37.4138, lng: 127.5183 },
+  { id: 'incheon',   label: '인천',      lat: 37.4563, lng: 126.7052 },
+  { id: 'busan',     label: '부산',      lat: 35.1796, lng: 129.0756 },
+  { id: 'daejeon',   label: '대전',      lat: 36.3504, lng: 127.3845 },
 ];
-
-/* ── 카테고리 필터 ───────────────────────────────────────── */
-function matchesCategory(place: Place, cat: string): boolean {
-  if (cat === 'all') return true;
-  const h = ((place.category ?? '') + ' ' + place.name).toLowerCase();
-  if (cat === '한식') return /한식|국밥|설렁탕|갈비|삼겹|불고기|된장|순두부|한정식/.test(h);
-  if (cat === '일식') return /일식|초밥|스시|라멘|우동|돈카츠|일본|야키/.test(h);
-  if (cat === '양식') return /양식|이탈리안|파스타|피자|스테이크|버거|브런치|서양/.test(h);
-  if (cat === '중식') return /중식|중국|짜장|짬뽕|탕수|마라/.test(h);
-  if (cat === '카페') return /카페|coffee|커피|디저트|케이크|cafe/.test(h);
-  if (cat === '술집') return /술|bar|바|이자카야|포차|호프|펍/.test(h);
-  if (cat === '분식') return /분식|떡볶이|순대|튀김|김밥/.test(h);
-  return true;
-}
 
 /* ── 저장 장소 카드 ─────────────────────────────────────── */
 const STATUS_DOT: Record<string, string> = {
@@ -205,40 +192,37 @@ export default function MapPage() {
     }
   };
 
-  /* 장소 섹션별 분류 */
-  const filteredSaved = useMemo(
-    () => places.filter((p) => matchesCategory(p, activeCategory)),
-    [places, activeCategory],
-  );
-
+  /* 저장된 장소 섹션별 분류 (카테고리 필터와 무관하게 항상 전체 표시) */
   const { visitedSaved, bothSaved, mySaved, partnerSaved } = useMemo(() => ({
-    visitedSaved:  filteredSaved.filter((p) => p.status === 'VISITED'),
-    bothSaved:     filteredSaved.filter((p) => p.status === 'BOTH'),
-    mySaved:       filteredSaved.filter((p) => p.status === myStatus),
-    partnerSaved:  filteredSaved.filter((p) => p.status === partnerStatus),
-  }), [filteredSaved, myStatus, partnerStatus]);
-
-  /* 전체 통계 (필터 무관) */
-  const stats = useMemo(() => ({
-    visited: places.filter((p) => p.status === 'VISITED').length,
-    both:    places.filter((p) => p.status === 'BOTH').length,
-    mine:    places.filter((p) => p.status === myStatus).length,
-    partner: places.filter((p) => p.status === partnerStatus).length,
+    visitedSaved: places.filter((p) => p.status === 'VISITED'),
+    bothSaved:    places.filter((p) => p.status === 'BOTH'),
+    mySaved:      places.filter((p) => p.status === myStatus),
+    partnerSaved: places.filter((p) => p.status === partnerStatus),
   }), [places, myStatus, partnerStatus]);
 
-  /* 저장된 핀/카드 클릭 → 줌인 + 상세 */
+  /* 통계 */
+  const stats = useMemo(() => ({
+    visited: visitedSaved.length,
+    both:    bothSaved.length,
+    mine:    mySaved.length,
+    partner: partnerSaved.length,
+  }), [visitedSaved, bothSaved, mySaved, partnerSaved]);
+
+  /* 저장된 핀/카드 클릭 → 줌인 + 상세 (모바일: 패널 닫기) */
   const handlePlaceClick = useCallback((place: Place) => {
     setSelectedPlace(place);
     setSelectedDiscovery(null);
+    if (window.innerWidth < 768) setShowRightPanel(false);
     if (place.lat && place.lng) {
       setCenterTo({ lat: place.lat, lng: place.lng, level: 3 });
     }
   }, []);
 
-  /* 발견 핀/카드 클릭 → 줌인 + 상세 */
+  /* 발견 핀/카드 클릭 → 줌인 + 상세 (모바일: 패널 닫기) */
   const handleDiscoveryClick = useCallback((result: KakaoSearchResult) => {
     setSelectedDiscovery(result);
     setSelectedPlace(null);
+    if (window.innerWidth < 768) setShowRightPanel(false);
     const lat = parseFloat(result.y);
     const lng = parseFloat(result.x);
     if (lat && lng) setCenterTo({ lat, lng, level: 3 });
@@ -246,6 +230,7 @@ export default function MapPage() {
 
   /* 검색바 결과 선택 */
   const handleSearchSelect = useCallback((result: KakaoSearchResult) => {
+    if (window.innerWidth < 768) setShowRightPanel(false);
     const existing = places.find((p) => p.kakao_place_id === result.id);
     if (existing) {
       setSelectedPlace(existing);
@@ -324,7 +309,7 @@ export default function MapPage() {
         {/* ── 왼쪽: 지도 ──────────────────────────────── */}
         <div className="relative flex-1 min-w-0">
           <KakaoMapComponent
-            places={filteredSaved}
+            places={places}
             discoveryPlaces={activeCategory !== 'all' ? discovery : []}
             onPlaceClick={handlePlaceClick}
             onDiscoveryClick={handleDiscoveryClick}
@@ -438,8 +423,12 @@ export default function MapPage() {
               </div>
             </div>
 
-            {/* 카테고리 필터 */}
+            {/* 주변 식당 검색 */}
             <div className="px-3 py-2 border-b border-border shrink-0">
+              <p className="text-[10px] font-semibold text-muted mb-1.5 flex items-center gap-1">
+                <Search size={9} />
+                주변 식당 검색
+              </p>
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                 {CATEGORIES.map(({ id, label }) => (
                   <button
@@ -578,7 +567,7 @@ export default function MapPage() {
               )}
 
               {/* 빈 상태 */}
-              {filteredSaved.length === 0 && activeCategory === 'all' && (
+              {places.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-3 px-4 text-center">
                   <div className="w-14 h-14 rounded-full bg-brand-50 flex items-center justify-center">
                     <MapPin size={24} className="text-brand/50" />
