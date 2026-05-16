@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
-import { authApi } from '../api/auth';
+import { authApi, getOAuthUrl } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -22,6 +22,12 @@ export default function RegisterPage() {
   const [loadingSend, setLoadingSend]     = useState(false);
   const [loadingVerify, setLoadingVerify] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+
+  const handleSocial = (provider: 'kakao' | 'naver') => {
+    const url = getOAuthUrl(provider);
+    if (!url) { toast.error('소셜 로그인 설정이 완료되지 않았어요'); return; }
+    window.location.href = url;
+  };
 
   useEffect(() => {
     authApi.features().then((f) => {
@@ -96,6 +102,37 @@ export default function RegisterPage() {
             <h1 className="text-xl font-bold text-ink">새 계정 만들기</h1>
             <p className="text-xs text-muted mt-0.5">가입 후 파트너와 연결하세요</p>
           </div>
+        </div>
+
+        {/* 소셜 가입 */}
+        <div className="flex flex-col gap-2.5 mb-6">
+          <button
+            type="button"
+            onClick={() => handleSocial('kakao')}
+            className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl text-sm font-bold bg-[#FEE500] text-[#191919] active:scale-95 transition-all"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919">
+              <path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.7 1.615 5.09 4.077 6.515L5.1 21l4.423-2.912A11.4 11.4 0 0012 18.6c5.523 0 10-3.477 10-7.8S17.523 3 12 3z"/>
+            </svg>
+            카카오로 시작하기
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSocial('naver')}
+            className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl text-sm font-bold bg-[#03C75A] text-white active:scale-95 transition-all"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+              <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
+            </svg>
+            네이버로 시작하기
+          </button>
+        </div>
+
+        {/* 구분선 */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted">이메일로 가입</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
