@@ -1,4 +1,6 @@
 .env
+frontend/.env.production
+frontend/.env.local
 __pycache__/
 *.pyc
 *.pyo
