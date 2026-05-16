@@ -5,14 +5,18 @@ from ..config import settings
 def _get(url: str, headers: dict = None, params: dict = None) -> dict:
     with httpx.Client(timeout=10) as client:
         r = client.get(url, headers=headers or {}, params=params or {})
-        r.raise_for_status()
+        if not r.is_success:
+            print(f"[OAUTH _get] {r.status_code} {url} → {r.text[:300]}")
+            r.raise_for_status()
         return r.json()
 
 
 def _post(url: str, data: dict = None, headers: dict = None) -> dict:
     with httpx.Client(timeout=10) as client:
         r = client.post(url, data=data or {}, headers=headers or {})
-        r.raise_for_status()
+        if not r.is_success:
+            print(f"[OAUTH _post] {r.status_code} {url} → {r.text[:300]}")
+            r.raise_for_status()
         return r.json()
 
 
@@ -26,6 +30,7 @@ def get_kakao_user(code: str, redirect_uri: str) -> dict:
     }
     if settings.KAKAO_CLIENT_SECRET:
         data["client_secret"] = settings.KAKAO_CLIENT_SECRET
+    print(f"[KAKAO] redirect_uri={redirect_uri} | client_id={settings.KAKAO_CLIENT_ID}")
     token_res = _post("https://kauth.kakao.com/oauth/token", data=data)
     access_token = token_res.get("access_token")
     if not access_token:
