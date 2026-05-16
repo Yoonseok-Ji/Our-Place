@@ -11,6 +11,7 @@ import ConnectCouplePage from './pages/ConnectCouplePage';
 import MapPage from './pages/MapPage';
 import TimelinePage from './pages/TimelinePage';
 import ProfilePage from './pages/ProfilePage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 
 export default function App() {
   const { token, setCouple } = useAuthStore();
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/oauth/:provider" element={<OAuthCallbackPage />} />
 
         {/* 로그인 필요 */}
         <Route element={<ProtectedRoute />}>
