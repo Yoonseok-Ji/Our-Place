@@ -49,9 +49,22 @@ export default function ConnectCouplePage() {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!inviteCouple?.invite_token) return;
-    navigator.clipboard.writeText(inviteCouple.invite_token);
+    const token = inviteCouple.invite_token;
+    try {
+      await navigator.clipboard.writeText(token);
+    } catch {
+      // HTTPS 미지원 환경 fallback
+      const el = document.createElement('textarea');
+      el.value = token;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
     setCopied(true);
     toast.success('복사됐어요!');
     setTimeout(() => setCopied(false), 2000);
