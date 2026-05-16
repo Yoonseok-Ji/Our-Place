@@ -45,21 +45,24 @@ def get_kakao_user(code: str, redirect_uri: str) -> dict:
 
 
 def get_naver_user(code: str, state: str, redirect_uri: str) -> dict:
-    """네이버 code → {oauth_id, email, name}"""
+    """네이버 code → {oauth_id, email, name}
+    Naver 토큰 교환 시 redirect_uri는 불필요 (공식 문서 기준)
+    """
     token_res = _get(
         "https://nid.naver.com/oauth2.0/token",
         params={
             "grant_type": "authorization_code",
             "client_id": settings.NAVER_CLIENT_ID,
             "client_secret": settings.NAVER_CLIENT_SECRET,
-            "redirect_uri": redirect_uri,
             "code": code,
             "state": state,
         },
     )
     access_token = token_res.get("access_token")
     if not access_token:
-        raise ValueError("네이버 토큰 발급 실패")
+        error = token_res.get("error", "unknown")
+        desc  = token_res.get("error_description", "")
+        raise ValueError(f"네이버 토큰 발급 실패: {error} - {desc}")
 
     user_res = _get(
         "https://openapi.naver.com/v1/nid/me",

@@ -185,8 +185,9 @@ class SocialLoginRequest(BaseModel):
 def kakao_login(body: SocialLoginRequest, db: Session = Depends(get_db)):
     try:
         info = get_kakao_user(body.code, body.redirect_uri)
-    except Exception:
-        raise HTTPException(status_code=400, detail="카카오 인증에 실패했어요")
+    except Exception as e:
+        print(f"[KAKAO ERROR] {e}")
+        raise HTTPException(status_code=400, detail=f"카카오 인증 실패: {e}")
     user = _find_or_create_social_user(db, "kakao", info["oauth_id"], info["email"], info["name"])
     return _token_for(user)
 
@@ -195,8 +196,9 @@ def kakao_login(body: SocialLoginRequest, db: Session = Depends(get_db)):
 def naver_login(body: SocialLoginRequest, db: Session = Depends(get_db)):
     try:
         info = get_naver_user(body.code, body.state or "", body.redirect_uri)
-    except Exception:
-        raise HTTPException(status_code=400, detail="네이버 인증에 실패했어요")
+    except Exception as e:
+        print(f"[NAVER ERROR] {e}")
+        raise HTTPException(status_code=400, detail=f"네이버 인증 실패: {e}")
     user = _find_or_create_social_user(db, "naver", info["oauth_id"], info["email"], info["name"])
     return _token_for(user)
 
@@ -205,7 +207,8 @@ def naver_login(body: SocialLoginRequest, db: Session = Depends(get_db)):
 def google_login(body: SocialLoginRequest, db: Session = Depends(get_db)):
     try:
         info = get_google_user(body.code, body.redirect_uri)
-    except Exception:
-        raise HTTPException(status_code=400, detail="구글 인증에 실패했어요")
+    except Exception as e:
+        print(f"[GOOGLE ERROR] {e}")
+        raise HTTPException(status_code=400, detail=f"구글 인증 실패: {e}")
     user = _find_or_create_social_user(db, "google", info["oauth_id"], info["email"], info["name"])
     return _token_for(user)
